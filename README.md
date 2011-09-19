@@ -2,8 +2,7 @@
 
 Fechter is a simple high-availability solution.
 
-Fechter is modelled after
-(Wackamole)[http://www.backhand.org/wackamole/]
+Fechter is modelled after http://www.backhand.org/wackamole/
 
 ## Running ##
 
