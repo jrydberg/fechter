@@ -8,7 +8,7 @@ between `ws-1` and `ws-2` depending on their state.  If `ws-1` goes
 down for some reason (mechanical errors, maintaince, ...) `ws-2` will
 assume responsibility for both `ext-ws-1` and `ext-ws-2`.
 
-Fechter tries to evenly spread out the IP aliases for all available
+Fechter tries to evenly spread out the IP aliases over all available
 nodes in the cluster.
 
 Fechter assumes that it talks to its cluster members over the same
