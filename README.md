@@ -37,6 +37,7 @@ install it in a virtual env for now:
     $ . env/bin/activate
     $ easy_install Twisted
     $ easy_install txgossip
+    $ easy_install fechter
 
 ## Running ##
 
