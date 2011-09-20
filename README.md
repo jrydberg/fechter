@@ -4,19 +4,25 @@ Fechter is a simple high-availability solution.
 
 Fechter is modelled after http://www.backhand.org/wackamole/
 
+## Installation ##
+
+Requirements:
+ - Twisted
+ - txgossip
+
+Do not install it on your system just yet.
+
 ## Running ##
 
 Starting fechter:
 
-    $ twistd fechter --listen-address 10.0.0.10 \
-         --gateway 10.0.0.1
+    $ twistd fechter --listen-address 10.0.0.10
 
 If you already have fechter running on a different machine, you can
 simply attach to that cluster by starting with the `--attach`
 parameter:
 
-    $ twistd fechter --listen-address 10.0.0.11 \
-         --gateway 10.0.0.1 --attach 10.0.0.10
+    $ twistd fechter --listen-address 10.0.0.11 --attach 10.0.0.10:4573
 
 Initially the cluster will not have any IP addresses assigned.  To add
 an address.  Fechter expect that the address can be assigned to `eth0`
@@ -32,29 +38,20 @@ otherwise the node will never receive any resources.
 Showing status:
 
     $ fechter status
-    10.0.0.20 assigned to 10.0.0.10
+    eth0:10.0.0.20 assigned to 10.0.0.10
 
 Adding an additional address:
 
     $ fechter add-address eth0:10.0.0.21
     $ fechter status
-    10.0.0.20 assigned to 10.0.0.10
-    10.0.0.21 assigned to 10.0.0.11
+    eth0:10.0.0.20 assigned to 10.0.0.10
+    eth0:10.0.0.21 assigned to 10.0.0.11
 
 If you now kill the second machine:
 
     $ fechter status
-    10.0.0.20 assigned to 10.0.0.10
-    10.0.0.21 assigned to 10.0.0.10
-
-If your local fechter instance thinks that it does not have any
-connectivity:
-
-    $ fechter connectivity
-    error: cannot reach gateway
-
-    $ fechter connectivity
-    can reach gateway 10.0.0.1
+    eth0:10.0.0.20 assigned to 10.0.0.10
+    eth0:10.0.0.21 assigned to 10.0.0.10
 
 
 # How does it work #
