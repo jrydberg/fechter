@@ -93,8 +93,10 @@ The instances elect a leader that will be responsible for distributing
 resources throughout the cluster.  A new election starts when a node
 leaves or arrives at the cluster.
 
+Future stuff:
+
 The leader will constantly monitor the nodes in the instances by
-sending them a "are you there?" message and expecting a retry.  If the
+sending them a "are you there?" message and expecting a reply.  If the
 node does not answer, the resources allocated to that node will be
 re-allocated to another node.
 
