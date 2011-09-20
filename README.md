@@ -1,15 +1,25 @@
 # Fechter #
 
-Fechter is a simple high-availability solution.  You it to distribute
-a set of IP aliases over your machines.
+Fechter is a simple high-availability solution.  Use it to distribute
+a set of IP aliases over your machines.  For example, say that you
+have two machines: `ws-1` and `ws-2`.  With Fechter you can simply add
+two additional IPs `ext-ws-1` and `ext-ws-2` that will be shared
+between `ws-1` and `ws-2` depending on their state.  If `ws-1` goes
+down for some reason (mechanical errors, maintaince, ...) `ws-2` will
+assume responsibility for both `ext-ws-1` and `ext-ws-2`.
 
-Fechter is modelled after http://www.backhand.org/wackamole/
+Fechter tries to evenly spread out the IP aliases for all available
+nodes in the cluster.
 
 Fechter assumes that it talks to its cluster members over the same
 connection that will expose the IP aliases.
 
 Currently we do not ping the gateway to check connectivity.  This will
 be implemented soon.
+
+The tool is named after Aaron Fechter, the created of Whac-A-Mole.
+
+Fechter draws inspiration from http://www.backhand.org/wackamole/
 
 ## Installation ##
 
