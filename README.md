@@ -1,18 +1,37 @@
 # Fechter #
 
-Fechter is a simple high-availability solution.
+Fechter is a simple high-availability solution.  You it to distribute
+a set of IP aliases over your machines.
 
 Fechter is modelled after http://www.backhand.org/wackamole/
+
+Fechter assumes that it talks to its cluster members over the same
+connection that will expose the IP aliases.
+
+Currently we do not ping the gateway to check connectivity.  This will
+be implemented soon.
 
 ## Installation ##
 
 Requirements:
+
  - Twisted
  - txgossip
+ - `/sbin/ip`
+ - `/usr/sbin/arping`
 
-Do not install it on your system just yet.
+Do not install it on your system just yet.  It is recommended that you
+install it in a virtual env for now:
+
+    $ virtualenv env
+    $ . env/bin/activate
+    $ easy_install Twisted
+    $ easy_install txgossip
 
 ## Running ##
+
+Really, for all this to work you should be running Fechter as root.
+But you do that at your own risk right now.
 
 Starting fechter:
 
@@ -88,6 +107,14 @@ The addresses are distributed in the order that they were added to the
 configuraiton, which means that all resources will not be reallocated
 when a new address is added.
 
+Currently existing assignments are not considered when a node in the
+cluster changes it status.  This means that when a node goes up or
+down (using `fechter down` for example) addresses gets redistributed.
+
 For the same reasons, when an address is removed from the
 configuration it is marked as "do-not-assign" instead of removed from
 the list of addresses.
+
+Addresses are installed on the node using `/sbin/ip`.  When an address
+has been installed the `arping` tool is used to send out a gratuitous
+ARP.

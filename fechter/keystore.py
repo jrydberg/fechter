@@ -138,8 +138,6 @@ class FechterProtocol:
              # First check if we want any resources at all, since this
              # may be an old assignment.
              status = self.gossiper.get(self.STATUS)
-             if status != 'up':
-                 return
              resource_id = key[7:]
              resource_key = 'resource:%s' % (resource_id,)
              self.platform.assign_resource(resource_id,

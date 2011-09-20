@@ -255,7 +255,7 @@ def main(args):
     parser.add_option('-H', '--host', dest="host", default='localhost',
                       help="host where fechter is running",
                       metavar="HOST")
-    parser.add_option('-p', '--port', dest="port", type=int, default=4574,
+    parser.add_option('-p', '--port', dest="port", type=int, default=4573,
                       help="port where fechter is running",
                       metavar="PORT")
     (options, args) = parser.parse_args(args=args)

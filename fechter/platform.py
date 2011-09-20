@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from twisted.python import log
+from twisted.internet import utils, defer
+
 """System specific functionality for installing resources."""
 
 
@@ -44,9 +47,22 @@ class AbstractPlatform(object):
 class LinuxPlatform(AbstractPlatform):
     """GNU/Linux platform."""
 
-    def __init__(self, ip='/sbin/ip'):
-        pass
+    def __init__(self, sbin_ip='/sbin/ip', arping='/usr/sbin/arping'):
+        AbstractPlatform.__init__(self)
+        self.sbin_ip = sbin_ip
+        self.arping = arping
 
-    def assign_resource(self, resource_id, assign_to_me, resource):
-        print "ASSIGN RESOURCE", resource_id, assign_to_me, resource
+    @defer.inlineCallbacks
+    def _install_resource(self, resource):
+        """Install resource."""
+        ifname, address = resource.split(':', 1)
+        yield utils.getProcessOutput(self.sbin_ip, ['addr', 'add',
+                str('%s/32' % (address)), 'dev', str(ifname)])
+        yield utils.getProcessOutput(self.arping, ['-I', str(ifname),
+            '-U', str(address), '-c', '1'])
 
+    def _release_resource(self, resource):
+        """Release resource."""
+        ifname, address = resource.split(':', 1)
+        utils.getProcessOutput(self.sbin_ip, ['addr', 'del', str('%s/32' % (address)),
+                'dev', str(ifname)]).addErrback(log.err)
