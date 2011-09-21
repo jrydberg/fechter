@@ -14,9 +14,6 @@ nodes in the cluster.
 Fechter assumes that it talks to its cluster members over the same
 connection that will expose the IP aliases.
 
-Currently we do not ping the gateway to check connectivity.  This will
-be implemented soon.
-
 The tool is named after Aaron Fechter, the created of Whac-A-Mole.
 
 Fechter draws inspiration from http://www.backhand.org/wackamole/
