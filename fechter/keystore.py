@@ -15,7 +15,7 @@
 import json
 import uuid
 
-from twisted.web import client
+from twisted.internet import defer, task, error
 from twisted.python import log
 from txgossip.recipies import KeyStoreMixin, LeaderElectionMixin
 
@@ -41,7 +41,7 @@ class FechterProtocol:
 
     STATUS = 'private:status'
 
-    def __init__(self, clock, storage, platform):
+    def __init__(self, clock, storage, platform, pinger):
         self.election = _LeaderElectionProtocol(clock, self)
         self.keystore = KeyStoreMixin(clock, storage,
                 [self.election.LEADER_KEY, self.election.VOTE_KEY,
@@ -49,6 +49,54 @@ class FechterProtocol:
         self.computer = AssignmentComputer(self.keystore)
         self.platform = platform
         self.clock = clock
+        self.pinger = pinger
+        self._connectivity_checker = task.LoopingCall(
+            self._check_connectivity)
+        self._status = 'down'
+        self._connectivity = 'down'
+
+    @defer.inlineCallbacks
+    def _check_connectivity(self):
+        """Check connectivity with gateway."""
+        tries = 0
+        done = 0
+        while not done:
+            tries += 1
+            try:
+                yield self.pinger.check_connectivity(timeout=1)
+            except error.TimeoutError:
+                if tries == 3:
+                    self.set_connectivity('down')
+                    break
+            else:
+                done = 1
+        else:
+            self.set_connectivity('up')
+
+    def _update_status(self):
+        """Update status that will be communicated to other peers."""
+        status = self._status if self._connectivity == 'up' else 'down'
+        log.msg('change status to in keystore to "%s"' % (status,))
+        self.gossiper.set(self.STATUS, status)
+
+    def connectivity(self):
+        """Return current connectivity status."""
+        return self._connectivity
+
+    def set_connectivity(self, status):
+        """Change connectivity status.
+
+        @param status: A string that is either C{up} or C{down}.
+        @type status: C{str}
+        """
+        assert status in ('up', 'down')
+        if status != self._connectivity:
+            self._connectivity = status
+            self._update_status()
+
+    def status(self):
+        """Return current administrative status."""
+        return self._status
 
     def set_status(self, status):
         """Change status.
@@ -57,7 +105,9 @@ class FechterProtocol:
         @type status: C{str}
         """
         assert status in ('up', 'down')
-        self._gossiper.set(self.STATUS, status)
+        if status != self._status:
+            self._status = status
+            self._update_status()
 
     def add_resource(self, resource):
         """Add a resource.
@@ -112,8 +162,6 @@ class FechterProtocol:
         """A peer changed one of its values."""
         if key == '__heartbeat__':
             return
-
-        #print "value changed by", peer.name, "key", key
 
         if self.election.value_changed(peer, key, value):
             # This value change was handled by the leader election
@@ -190,8 +238,10 @@ class FechterProtocol:
     def make_connection(self, gossiper):
         """Make connection to gossip instance."""
         self.gossiper = gossiper
+        self._update_status()
         self.election.make_connection(gossiper)
         self.keystore.make_connection(gossiper)
+        self._connectivity_checker.start(5)
 
     def peer_alive(self, peer):
         self.election.peer_alive(peer)

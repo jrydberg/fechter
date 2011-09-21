@@ -13,29 +13,30 @@
 # limitations under the License.
 
 import uuid
+import socket
 
 from twisted.application import service
 from twisted.web import server, http
 from txgossip.gossip import Gossiper
-from . import keystore, rest, platform, assign
+from . import keystore, rest, platform, assign, ping
 
 
 class StatusController:
     """REST controller for the status of this node."""
 
-    def __init__(self, gossiper):
-        self.gossiper = gossiper
+    def __init__(self, protocol):
+        self.protocol = protocol
 
     def post(self, router, request, url, data):
         """Update status of the node."""
         if data in ('up', 'down'):
-            self.gossiper.set('private:status', data)
+            self.protocol.set_status(data)
             return http.OK
         return http.BAD_REQUEST
 
     def get(self, router, request, url):
         """Return current status of the node."""
-        return self.gossiper.get('private:status')
+        return self.protocol.status()
 
 
 class ResourceController:
@@ -56,21 +57,24 @@ class ResourceController:
 class InfoController:
     """REST controller for info about the cluster."""
 
-    def __init__(self, clock, gossiper):
+    def __init__(self, clock, protocol, gossiper):
         self.clock = clock
+        self.protocol = protocol
         self.gossiper = gossiper
 
     def get(self, router, request, url):
-        """."""
+        """Return information about the node."""
         neighborhood = {}
         for peer in (self.gossiper.live_peers
                      + self.gossiper.dead_peers):
             neighborhood[peer.name] = {
                 'alive': peer.alive,
                 'phi': peer.detector.phi(
-                    self.clock.seconds())
+                    self.clock.seconds()),
+                'status': peer.get('private:status'),
                 }
-        return {'neighborhood': neighborhood}
+        return {'neighborhood': neighborhood,
+            'connectivity': self.protocol.connectivity()}
 
 
 class ResourceCollectionController:
@@ -95,31 +99,40 @@ class ResourceCollectionController:
 class Fechter(service.Service):
     """High-availability service."""
 
-    def __init__(self, reactor, listen_addr, listen_port, storage, phi=8):
+    def __init__(self, reactor, listen_addr, listen_port, gateway,
+            storage, phi=8):
         self.reactor = reactor
+        self._listen_addr = listen_addr
         self._listen_port = listen_port
         self.storage = storage
+        try:
+            icmp_socket = socket.socket(socket.AF_INET, socket.SOCK_RAW,
+                socket.getprotobyname("icmp"))
+        except socket.error, (errno, msg):
+            if errno == 1:
+                raise Exception("ICMP messages can only be sent by root")
+            raise
+        self.pinger = ping.Pinger(reactor, icmp_socket, gateway)
         self.platform = platform.LinuxPlatform()
         self.protocol = keystore.FechterProtocol(reactor, storage,
-            self.platform)
+            self.platform, self.pinger)
         self.gossiper = Gossiper(reactor, self.protocol, listen_addr)
 
         self.router = rest.Router()
         self.router.addController('info', InfoController(
-                self.reactor, self.gossiper))
+                self.reactor, self.protocol, self.gossiper))
         self.router.addController('resource/{resource_id}', ResourceController(
                 self.reactor, self.protocol.keystore))
         self.router.addController('resource', ResourceCollectionController(
                 self.reactor, self.protocol))
-        self.router.addController('status', StatusController(
-                self.gossiper))
+        self.router.addController('status', StatusController(self.protocol))
 
     def startService(self):
         """Start the service."""
-        self.reactor.listenUDP(self._listen_port, self.gossiper)
+        self.reactor.listenUDP(self._listen_port, self.gossiper,
+            interface=self._listen_addr)
         self.reactor.listenTCP(self._listen_port, server.Site(
                 self.router))
         # This is so ugly:
         self.gossiper.set(self.protocol.election.PRIO_KEY, 0)
-        self.gossiper.set(self.protocol.STATUS, 'down')
         self.protocol.keystore.load_from(self.storage)

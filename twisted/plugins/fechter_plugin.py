@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import socket
 
 from zope.interface import implements
 
@@ -34,7 +35,7 @@ distribute IP addresses over a cluster.
     optParameters = (
         ("port", "p", 4573, "The port number to listen on."),
         ("listen-address", "a", None, "The listen address."),
-        ("dateway", "g", None, "Gateway to check connecticity with"),
+        ("gateway", "g", None, "Gateway to check connecticity with"),
         ("data-file", "d", "fechter.data", "File to store data in."),
         ("attach", "s", None, "Address to running Fechter instance."),
         ("dead-at", "D", "8", "Treat peers when PHI larger than this")
@@ -49,15 +50,37 @@ class MyServiceMaker(object):
     options = Options
 
     def makeService(self, options):
-        """."""
+        """Create Fechter service."""
         if not options['listen-address']:
             raise usage.UsageError("listen address must be specified")
-        s = service.Fechter(
-            reactor, options['listen-address'], int(options['port']),
+        try:
+            listen_addr = socket.gethostbyname(options['listen-address'])
+        except socket.error, err:
+            raise usage.UsageError("%s: %s" % (options['listen-address'],
+                str(err)))
+        if not options['gateway']:
+            raise usage.UsageError("gateway must be specified")
+        try:
+            gateway = socket.gethostbyname(options['gateway'])
+        except socket.error, err:
+            raise usage.UsageError("%s: %s" % (options['gateway'],
+                str(err)))
+
+        fechter = service.Fechter(
+            reactor, listen_addr, int(options['port']), gateway,
             shelve.open(options['data-file'], writeback=True),
             phi=int(options['dead-at']))
         if options['attach']:
-            s.gossiper.seed([options['attach']])
-        return s
+            attach, port = options['attach'], int(options['port'])
+            if ':' in attach:
+                attach, port = attach.split(':', 1)
+                port = int(port)
+            try:
+                attach = socket.gethostbyname(attach)
+            except socket.error, err:
+                raise usage.UsageError("%s: %s" % (options['attach'],
+                    str(err)))
+            fechter.gossiper.seed(['%s:%d' % (attach, port)])
+        return fechter
 
 serviceMaker = MyServiceMaker()

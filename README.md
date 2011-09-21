@@ -46,13 +46,23 @@ But you do that at your own risk right now.
 
 Starting fechter:
 
-    $ twistd fechter --listen-address 10.0.0.10
+    $ twistd fechter --listen-address 10.0.0.10 --gateway 10.0.0.1
+
+fechter will continuously check connectivity with the given gateway,
+using ICMP ECHO (aka ping).  If the gateway refuses to respond,
+fechter will stop accepting resources.  This helps a bit against
+split-break scenarios.
+
+The connectivity can always be checked using `fechter connectivity`:
+
+    $ fechter connectivity
+    can talk to gateway
 
 If you already have fechter running on a different machine, you can
 simply attach to that cluster by starting with the `--attach`
 parameter:
 
-    $ twistd fechter --listen-address 10.0.0.11 --attach 10.0.0.10:4573
+    $ twistd fechter --listen-address 10.0.0.11 --gateway 10.0.0.1 --attach 10.0.0.10
 
 Initially the cluster will not have any IP addresses assigned.  To add
 an address.  Fechter expect that the address can be assigned to `eth0`
@@ -88,11 +98,15 @@ If you now kill the second machine:
 
 Each node in the high availability cluster runs an instance of
 Fechter.  The instances all talk with each other using a gossip
-protocol provided by (txgossip)[https://github.com/jrydberg/txgossip].
+protocol provided by [https://github.com/jrydberg/txgossip](txgossip).
 
 The instances elect a leader that will be responsible for distributing
 resources throughout the cluster.  A new election starts when a node
 leaves or arrives at the cluster.
+
+Each node does a connectivity check to make sure that it is able to
+reach its gateway.  If it fails to do so, it will signal to the leader
+that "i do not want any resources".
 
 Future stuff:
 
@@ -100,10 +114,6 @@ The leader will constantly monitor the nodes in the instances by
 sending them a "are you there?" message and expecting a reply.  If the
 node does not answer, the resources allocated to that node will be
 re-allocated to another node.
-
-Each node does a connectivity check to make sure that it is able to
-reach its gateway.  If it fails to do so, it will signal to the leader
-that "i do not want any resources".
 
 ## The allocation algorithm ##
 

@@ -192,11 +192,19 @@ def _split_host_port(hostport):
 
 import socket
 
+def _connectivity(client, args):
+    """Display if this node can talk to its gateway."""
+    info = client.info()
+    if info['connectivity'] == 'up':
+        print "can talk to gateway"
+    else:
+        print "cannot talk to gateway"
+
 
 def _info(client, args):
     """Display some information about the cluster."""
     parser = OptionParser(version="%%prog %s" % VERSION, prog="fechter",
-        usage='fechter [options] status [options]')
+        usage='fechter [options] info [options]')
     parser.add_option('-n', '--no-resolve', dest="no_resolve",
                       action="store_true", default=False,
                       help="Do not resolve names")
@@ -209,8 +217,10 @@ def _info(client, args):
                 hostname = socket.gethostbyaddr(host)[0]
             except socket.error:
                 hostname = host
-        print "%s is %s" % (hostname,
-            "alive" if data['alive'] else "dead")
+        print "%s is %s%s" % (hostname,
+            "alive" if data['alive'] else "dead",
+            "" if (not data['status'] or not data['alive'])
+                else (" (status: %s)" % (data['status'],)))
 
 
 def _status(client, args):
@@ -272,6 +282,8 @@ def main(args):
         command = _status
     elif args[0] == 'info':
         command = _info
+    elif args[0] == 'connectivity':
+        command = _connectivity
     else:
         sys.exit("error: unknown command")
 
