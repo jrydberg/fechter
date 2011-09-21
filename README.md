@@ -48,7 +48,7 @@ Starting fechter:
 fechter will continuously check connectivity with the given gateway,
 using ICMP ECHO (aka ping).  If the gateway refuses to respond,
 fechter will stop accepting resources.  This helps a bit against
-split-break scenarios.
+split-brain scenarios.
 
 The connectivity can always be checked using `fechter connectivity`:
 
