@@ -92,7 +92,7 @@ class ResourceCollectionController:
         """Create a new resource."""
         if type(data) != str:
             return http.BAD_REQUEST
-        resource_id = self.protocol.add_resource(data)
+        self.protocol.add_resource(data)
         return http.CREATED
 
 
