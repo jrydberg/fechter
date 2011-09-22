@@ -25,7 +25,6 @@ Requirements:
  - Twisted
  - txgossip
  - `/sbin/ip`
- - `/usr/sbin/arping`
 
 Do not install it on your system just yet.  It is recommended that you
 install it in a virtual env for now:
@@ -136,5 +135,5 @@ configuration it is marked as "do-not-assign" instead of removed from
 the list of addresses.
 
 Addresses are installed on the node using `/sbin/ip`.  When an address
-has been installed the `arping` tool is used to send out a gratuitous
-ARP.
+has been installed a gratuitous ARP is sent out on the interface to
+inform gateways and others that the address has a new MAC address.
