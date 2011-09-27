@@ -104,10 +104,10 @@ def _send_arp(ifname, address):
         socket.inet_aton(address)
         ]
     ether_frame = [
-        # Source address:
-        ether_addr,
         # Destination address:
         ether_aton(ETH_BROADCAST),
+        # Source address:
+        ether_addr,
         # Protocol
         struct.pack("!h", ETH_TYPE_ARP),
         # Data
@@ -135,5 +135,6 @@ class LinuxPlatform(AbstractPlatform):
     def _release_resource(self, resource):
         """Release resource."""
         ifname, address = resource.split(':', 1)
-        utils.getProcessOutput(self.sbin_ip, ['addr', 'del', str('%s/32' % (address)),
+        utils.getProcessOutput(self.sbin_ip, ['addr', 'del',
+                str('%s/32' % (address)),
                 'dev', str(ifname)]).addErrback(log.err)
